@@ -3,6 +3,7 @@ import joblib
 import numpy as np
 import boto3
 import json
+from sklearn.preprocessing import StandardScaler
 
 # AWS Lambda client
 lambda_client = boto3.client('lambda', region_name='eu-west-1')
@@ -11,7 +12,7 @@ lambda_client = boto3.client('lambda', region_name='eu-west-1')
 app = Flask(__name__)
 
 # Load your pre-trained model
-model = joblib.load('random_forest_model.pkl')
+model = joblib.load('rfmodel.pkl')
 
 # Define encoding strategies for categorical variables
 encoding_strategies = {
@@ -66,7 +67,8 @@ def predict():
         'seek_help', 'anonymity', 'leave', 'mental_health_consequence',
         'phys_health_consequence', 'coworkers', 'supervisor', 'mental_vs_physical', 'sentiment_encoded'
     ]
-    
+    print("data coming from form-----------------------")
+    print(data)
     processed_data = [
         float(data[field]) if field == 'Age' else encoding_strategies[field][data[field]]
         for field in feature_order
@@ -76,9 +78,24 @@ def predict():
     if len(processed_data) != len(feature_order):
         return render_template('index.html', dynamic_fields=dynamic_fields, prediction="Feature count mismatch. Please check input data.")
 
-    # Convert to numpy array and predict
-    processed_data = np.array([processed_data])
+    
+    processed_data = np.array([processed_data])  # Ensure that processed_data is a 2D array
+    print("before preprocessing----------------------")
+    print(processed_data)
+    
+
+    age_index = feature_order.index('Age')  # Get the index of the 'Age' column in feature_order
+
+    # Scale only the 'Age' column
+    scaler = StandardScaler()
+
+    # Apply scaling to 'Age' column
+    processed_data[:, age_index] = scaler.fit_transform(processed_data[:, age_index].reshape(-1, 1)).flatten()
+    
+    print("after preprocessing----------------------")
+    print(processed_data)
     prediction = model.predict(processed_data)
+    print(prediction)
     result = "Needs Treatment" if prediction[0] == 1 else "No Treatment Needed"
 
      # Prepare data for Lambda
