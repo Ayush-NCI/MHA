@@ -32,7 +32,7 @@ encoding_strategies = {
     'anonymity': {'Yes': 1, 'No': 0, "Don't know": 2},
     'leave': {'Very easy': 0, 'Somewhat easy': 1, 'Somewhat difficult': 3, "Don't know": 2},
     'mental_health_consequence': {'Yes': 1, 'No': 0, 'Maybe': 2},
-    'phys_health_consequence': {'Yes': 1, 'No': 0, 'Maybe': 2},
+    'physical_health_consequence': {'Yes': 1, 'No': 0, 'Maybe': 2},
     'coworkers': {'Yes': 1, 'No': 0, 'Some of them': 2},
     'supervisor': {'Yes': 1, 'No': 0, 'Some of them': 2},
     'mental_vs_physical': {'Yes': 1, 'No': 0, "Don't know": 2},
@@ -43,45 +43,50 @@ encoding_strategies = {
 
 # Function to save user data into DynamoDB
 def save_to_dynamodb(data, prediction_result):
-    # Create a DynamoDB client
-    dynamodb = boto3.resource('dynamodb', region_name='eu-west-2')  # Change region if needed
-    table = dynamodb.Table('x23178248_user_predictions')  # Your DynamoDB table name
+    try:
+        # Create a DynamoDB client
+        dynamodb = boto3.resource('dynamodb', region_name='eu-west-2')  # Change region if needed
+        table = dynamodb.Table('x23178248_user_predictions')  # Your DynamoDB table name
 
-    # Create a unique user_id (e.g., using timestamp or UUID)
-    user_id = str(datetime.now().timestamp())  # You can use UUID for uniqueness
-     # Get the current timestamp (or use the timestamp field if needed)
-    timestamp = Decimal(datetime.now().timestamp()) 
-    print(timestamp)
-    # Prepare the data to be saved
-    user_data = {
-        'user_id': user_id,
-        'timestamp': timestamp,
-        'user_id': user_id,
-        'Age': Decimal(data.get('Age', 0)),  # Convert 'Age' to Decimal
-        'Gender_encoded': data.get('Gender_encoded', None),  # Map 'Gender' to 'Gender_encoded'
-        'self_employed': encoding_strategies['self_employed'].get(data.get('self_employed', ''), None),
-        'family_history': encoding_strategies['family_history'].get(data.get('family_history', ''), None),
-        'work_interfere': encoding_strategies['work_interfere'].get(data.get('work_interfere', ''), None),
-        'no_employees': encoding_strategies['no_employees'].get(data.get('no_employees', ''), None),
-        'tech_company': encoding_strategies['tech_company'].get(data.get('tech_company', ''), None),
-        'benefits': encoding_strategies['benefits'].get(data.get('benefits', ''), None),
-        'care_options': encoding_strategies['care_options'].get(data.get('care_options', ''), None),
-        'wellness_program': encoding_strategies['wellness_program'].get(data.get('wellness_program', ''), None),
-        'seek_help': encoding_strategies['seek_help'].get(data.get('seek_help', ''), None),
-        'anonymity': encoding_strategies['anonymity'].get(data.get('anonymity', ''), None),
-        'leave': encoding_strategies['leave'].get(data.get('leave', ''), None),
-        'mental_health_consequence': encoding_strategies['mental_health_consequence'].get(data.get('mental_health_consequence', ''), None),
-        'phys_health_consequence': encoding_strategies['phys_health_consequence'].get(data.get('phys_health_consequence', ''), None),
-        'coworkers': encoding_strategies['coworkers'].get(data.get('coworkers', ''), None),
-        'supervisor': encoding_strategies['supervisor'].get(data.get('supervisor', ''), None),
-        'mental_vs_physical': encoding_strategies['mental_vs_physical'].get(data.get('mental_vs_physical', ''), None),
-        'sentiment_encoded': encoding_strategies['sentiment_encoded'].get(data.get('sentiment_encoded', ''), None),
-        'prediction_result': prediction_result
-    }
+        # Create a unique user_id (e.g., using timestamp or UUID)
+        user_id = str(datetime.now().timestamp())  # You can use UUID for uniqueness
+        # Get the current timestamp (or use the timestamp field if needed)
+        timestamp = Decimal(datetime.now().timestamp()) 
+        print(timestamp)
 
-    # Save the data to DynamoDB
-    table.put_item(Item=user_data)
-    print("Data saved to DynamoDB successfully.")
+        # Prepare the data to be saved
+        user_data = {
+            'user_id': user_id,
+            'timestamp': timestamp,
+            'Age': Decimal(data.get('Age', 0)),  # Convert 'Age' to Decimal
+            'Gender_encoded': data.get('Gender_encoded', None),  # Map 'Gender' to 'Gender_encoded'
+            'self_employed': encoding_strategies['self_employed'].get(data.get('self_employed', ''), None),
+            'family_history': encoding_strategies['family_history'].get(data.get('family_history', ''), None),
+            'work_interfere': encoding_strategies['work_interfere'].get(data.get('work_interfere', ''), None),
+            'no_employees': encoding_strategies['no_employees'].get(data.get('no_employees', ''), None),
+            'tech_company': encoding_strategies['tech_company'].get(data.get('tech_company', ''), None),
+            'benefits': encoding_strategies['benefits'].get(data.get('benefits', ''), None),
+            'care_options': encoding_strategies['care_options'].get(data.get('care_options', ''), None),
+            'wellness_program': encoding_strategies['wellness_program'].get(data.get('wellness_program', ''), None),
+            'seek_help': encoding_strategies['seek_help'].get(data.get('seek_help', ''), None),
+            'anonymity': encoding_strategies['anonymity'].get(data.get('anonymity', ''), None),
+            'leave': encoding_strategies['leave'].get(data.get('leave', ''), None),
+            'mental_health_consequence': encoding_strategies['mental_health_consequence'].get(data.get('mental_health_consequence', ''), None),
+            'physical_health_consequence': encoding_strategies['physical_health_consequence'].get(data.get('phys_health_consequence', ''), None),
+            'coworkers': encoding_strategies['coworkers'].get(data.get('coworkers', ''), None),
+            'supervisor': encoding_strategies['supervisor'].get(data.get('supervisor', ''), None),
+            'mental_vs_physical': encoding_strategies['mental_vs_physical'].get(data.get('mental_vs_physical', ''), None),
+            'sentiment_encoded': encoding_strategies['sentiment_encoded'].get(data.get('sentiment_encoded', ''), None),
+            'prediction_result': prediction_result
+        }
+
+        # Save the data to DynamoDB
+        table.put_item(Item=user_data)
+        print("Data saved to DynamoDB successfully.")
+
+    except Exception as e:
+        # Log the error but allow prediction to proceed
+        print(f"Error saving data to DynamoDB: {e}")
 
 @app.route('/')
 def index():
@@ -94,7 +99,7 @@ def index():
         'anonymity': ['Yes', 'No', "Don't know"],
         'leave': ['Very easy', 'Somewhat easy', 'Somewhat difficult', "Don't know"],
         'mental_health_consequence': ['Yes', 'No', 'Maybe'],
-        'phys_health_consequence': ['Yes', 'No', 'Maybe'],
+        'physical_health_consequence': ['Yes', 'No', 'Maybe'],
         'coworkers': ['Yes', 'No', 'Some of them'],
         'supervisor': ['Yes', 'No', 'Some of them'],
         'mental_vs_physical': ['Yes', 'No', "Don't know"]
@@ -111,7 +116,7 @@ def predict():
         'Age', 'Gender_encoded', 'self_employed', 'family_history', 'work_interfere',
         'no_employees', 'tech_company', 'benefits', 'care_options', 'wellness_program',
         'seek_help', 'anonymity', 'leave', 'mental_health_consequence',
-        'phys_health_consequence', 'coworkers', 'supervisor', 'mental_vs_physical', 'sentiment_encoded'
+        'physical_health_consequence', 'coworkers', 'supervisor', 'mental_vs_physical', 'sentiment_encoded'
     ]
     print("data coming from form-----------------------")
     print(data)
@@ -157,7 +162,7 @@ def predict():
         'anonymity': ['Yes', 'No', "Don't know"],
         'leave': ['Very easy', 'Somewhat easy', 'Somewhat difficult',  "Don't know"],
         'mental_health_consequence': ['Yes', 'No', 'Maybe'],
-        'phys_health_consequence': ['Yes', 'No', 'Maybe'],
+        'physical_health_consequence': ['Yes', 'No', 'Maybe'],
         'coworkers': ['Yes', 'No', 'Some of them'],
         'supervisor': ['Yes', 'No', 'Some of them'],
         'mental_vs_physical': ['Yes', 'No', "Don't know"]
