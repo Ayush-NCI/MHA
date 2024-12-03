@@ -4,6 +4,9 @@ import numpy as np
 import boto3
 import json
 from sklearn.preprocessing import StandardScaler
+import boto3
+from datetime import datetime
+from decimal import Decimal 
 
 # AWS Lambda client
 lambda_client = boto3.client('lambda', region_name='eu-west-1')
@@ -36,6 +39,49 @@ encoding_strategies = {
     'sentiment_encoded': {'Positive': 1, 'Negative': -1, 'Neutral': 0}
 }
 
+
+
+# Function to save user data into DynamoDB
+def save_to_dynamodb(data, prediction_result):
+    # Create a DynamoDB client
+    dynamodb = boto3.resource('dynamodb', region_name='eu-west-2')  # Change region if needed
+    table = dynamodb.Table('x23178248_user_predictions')  # Your DynamoDB table name
+
+    # Create a unique user_id (e.g., using timestamp or UUID)
+    user_id = str(datetime.now().timestamp())  # You can use UUID for uniqueness
+     # Get the current timestamp (or use the timestamp field if needed)
+    timestamp = Decimal(datetime.now().timestamp()) 
+    print(timestamp)
+    # Prepare the data to be saved
+    user_data = {
+        'user_id': user_id,
+        'timestamp': timestamp,
+        'user_id': user_id,
+        'Age': Decimal(data.get('Age', 0)),  # Convert 'Age' to Decimal
+        'Gender_encoded': data.get('Gender_encoded', None),  # Map 'Gender' to 'Gender_encoded'
+        'self_employed': encoding_strategies['self_employed'].get(data.get('self_employed', ''), None),
+        'family_history': encoding_strategies['family_history'].get(data.get('family_history', ''), None),
+        'work_interfere': encoding_strategies['work_interfere'].get(data.get('work_interfere', ''), None),
+        'no_employees': encoding_strategies['no_employees'].get(data.get('no_employees', ''), None),
+        'tech_company': encoding_strategies['tech_company'].get(data.get('tech_company', ''), None),
+        'benefits': encoding_strategies['benefits'].get(data.get('benefits', ''), None),
+        'care_options': encoding_strategies['care_options'].get(data.get('care_options', ''), None),
+        'wellness_program': encoding_strategies['wellness_program'].get(data.get('wellness_program', ''), None),
+        'seek_help': encoding_strategies['seek_help'].get(data.get('seek_help', ''), None),
+        'anonymity': encoding_strategies['anonymity'].get(data.get('anonymity', ''), None),
+        'leave': encoding_strategies['leave'].get(data.get('leave', ''), None),
+        'mental_health_consequence': encoding_strategies['mental_health_consequence'].get(data.get('mental_health_consequence', ''), None),
+        'phys_health_consequence': encoding_strategies['phys_health_consequence'].get(data.get('phys_health_consequence', ''), None),
+        'coworkers': encoding_strategies['coworkers'].get(data.get('coworkers', ''), None),
+        'supervisor': encoding_strategies['supervisor'].get(data.get('supervisor', ''), None),
+        'mental_vs_physical': encoding_strategies['mental_vs_physical'].get(data.get('mental_vs_physical', ''), None),
+        'sentiment_encoded': encoding_strategies['sentiment_encoded'].get(data.get('sentiment_encoded', ''), None),
+        'prediction_result': prediction_result
+    }
+
+    # Save the data to DynamoDB
+    table.put_item(Item=user_data)
+    print("Data saved to DynamoDB successfully.")
 
 @app.route('/')
 def index():
@@ -98,23 +144,9 @@ def predict():
     print(prediction)
     result = "Needs Treatment" if prediction[0] == 1 else "No Treatment Needed"
 
-     # Prepare data for Lambda
-    lambda_payload = {
-        "prediction_result": result,
-        "user_data": data
-    }
 
-    try:
-        # Invoke Lambda function
-        response = lambda_client.invoke(
-            FunctionName='x23178248_save_prediction_result',
-            InvocationType='Event',  # Use 'Event' for asynchronous invocation
-            Payload=json.dumps(lambda_payload)
-        )
-        print(f"Lambda invocation response: {response}")
-    except Exception as e:
-        print(f"Error invoking Lambda: {e}")
-
+    # Save the response and prediction result to DynamoDB
+    save_to_dynamodb(data, result)
 
     # Render the prediction on the same page
     dynamic_fields = {
