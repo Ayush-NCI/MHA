@@ -106,6 +106,87 @@ def index():
     }
     return render_template('index.html', dynamic_fields=dynamic_fields, prediction=None)
 
+def fetch_data_from_dynamodb():
+    """
+    Fetch all data from the DynamoDB table as-is.
+    """
+    try:
+        # Create a DynamoDB client
+        dynamodb = boto3.resource('dynamodb', region_name='eu-west-2')  # Change region if needed
+        table = dynamodb.Table('x23178248_user_predictions')  # Replace with your table name
+
+        # Scan the table to fetch all items
+        response = table.scan()
+        items = response.get('Items', [])
+
+        return items
+    except Exception as e:
+        print(f"Error fetching data from DynamoDB: {e}")
+        return []
+
+
+@app.route('/view_data')
+def view_data():
+    # Fetch raw data from DynamoDB
+    dynamo_data = fetch_data_from_dynamodb()
+
+    # Analyze data for charts
+    prediction_counts = {'Needs Treatment': 0, 'No Treatment Needed': 0}
+    age_distribution = []
+    gender_distribution = {'Male': 0, 'Female': 0, 'Others': 0}
+    work_interfere_levels = {'Never': 0, 'Rarely': 0, 'Sometimes': 0, 'Often': 0}
+    benefits_vs_prediction = {'Yes': {'Needs Treatment': 0, 'No Treatment Needed': 0},
+                              'No': {'Needs Treatment': 0, 'No Treatment Needed': 0},
+                              "Don't know": {'Needs Treatment': 0, 'No Treatment Needed': 0}}
+
+    # Decoding and analysis
+    for item in dynamo_data:
+        # Decode Gender
+        gender_code = item.get('Gender_encoded', 'Others')  # Default to 'Others' if not found
+    
+        # Update the gender distribution count based on the gender_code value
+        if gender_code in gender_distribution:
+            gender_distribution[gender_code] += 1
+        else:
+            # If there is an unexpected value, classify it as 'Others'
+            gender_distribution['Others'] += 1
+            
+        
+
+        # Decode and categorize work interfere
+        work_interfere_code = item.get('work_interfere', None)
+        work_interfere = next((key for key, value in encoding_strategies['work_interfere'].items() if value == work_interfere_code), 'Unknown')
+        if work_interfere in work_interfere_levels:
+            work_interfere_levels[work_interfere] += 1
+
+        # Decode benefits and categorize with predictions
+        benefits_code = item.get('benefits', None)
+        benefits = next((key for key, value in encoding_strategies['benefits'].items() if value == benefits_code), "Unknown")
+        prediction = item.get('prediction_result', 'No Treatment Needed')
+        if benefits in benefits_vs_prediction:
+            benefits_vs_prediction[benefits][prediction] += 1
+
+        # Predictions
+        prediction_counts[prediction] += 1
+
+        # Age distribution
+        try:
+            age_distribution.append(int(item.get('Age', 0)))
+        except ValueError:
+            pass  # Skip invalid ages
+
+    return render_template(
+        'view_data.html',
+        data=dynamo_data,
+        keys=dynamo_data[0].keys() if dynamo_data else [],
+        prediction_counts=prediction_counts,
+        age_distribution=age_distribution,
+        gender_distribution=gender_distribution,
+        work_interfere_levels=work_interfere_levels,
+        benefits_vs_prediction=benefits_vs_prediction
+    )
+
+
 
 @app.route('/predict', methods=['POST'])
 def predict():
