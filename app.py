@@ -88,7 +88,7 @@ def save_to_dynamodb(data, prediction_result):
         # Log the error but allow prediction to proceed
         print(f"Error saving data to DynamoDB: {e}")
 
-@app.route('/')
+@app.route('/index')
 def index():
     # Define dynamic fields and their options
     dynamic_fields = {
@@ -106,6 +106,10 @@ def index():
     }
     return render_template('index.html', dynamic_fields=dynamic_fields, prediction=None)
 
+@app.route('/')
+def home():
+    return render_template('home.html')
+    
 def fetch_data_from_dynamodb():
     """
     Fetch all data from the DynamoDB table as-is.
